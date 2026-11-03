@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JelajahJogja — Peta Wisata Alternatif & Sentra Kerajinan Edukatif DIY</title>
+  <meta name="description" content="Sistem Informasi Geografis berbasis web untuk memetakan potensi wisata alternatif dan sentra kerajinan edukatif di Desa Wisata Yogyakarta." />
+
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js CSS (jsDelivr — lebih stabil dari unpkg untuk lokal) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar" role="banner">
+    <div class="navbar__brand">
+      <div class="navbar__logo" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="14" fill="#1A56DB"/>
+          <path d="M14 6C10.134 6 7 9.134 7 13c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" fill="white"/>
+          <circle cx="14" cy="13" r="2.5" fill="#1A56DB"/>
+        </svg>
+      </div>
+      <div class="navbar__title">
+        <span class="navbar__title-main">JelajahJogja</span>
+        <span class="navbar__title-sub">Peta Wisata Alternatif & Kerajinan Edukatif DIY</span>
+      </div>
+    </div>
+
+    <div class="navbar__search">
+      <div class="search-box">
+        <svg class="search-box__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-box__input"
+          placeholder="Cari destinasi wisata..."
+          autocomplete="off"
+          aria-label="Cari destinasi wisata"
+        />
+        <button class="search-box__clear" id="searchClear" aria-label="Hapus pencarian" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <button class="navbar__menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main class="app-layout" role="main">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar" role="complementary" aria-label="Panel informasi dan filter">
+
+      <!-- Sidebar Header -->
+      <div class="sidebar__header">
+        <p class="sidebar__header-title">JelajahJogja</p>
+        <p class="sidebar__header-sub">16 destinasi wisata & kerajinan DIY</p>
+      </div>
+
+      <!-- Filter Panel -->
+      <section class="sidebar__section" aria-labelledby="filter-heading">
+        <h2 class="sidebar__heading" id="filter-heading">Filter Destinasi</h2>
+
+        <div class="filter-group">
+          <label class="filter-group__label" for="filterCategory">Kategori</label>
+          <select id="filterCategory" class="filter-select" aria-label="Filter berdasarkan kategori">
+            <option value="">Semua Kategori</option>
+            <option value="Wisata Alternatif">Wisata Alternatif</option>
+            <option value="Sentra Kerajinan Edukatif">Sentra Kerajinan Edukatif</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-group__label" for="filterRegion">Wilayah</label>
+          <select id="filterRegion" class="filter-select" aria-label="Filter berdasarkan wilayah">
+            <option value="">Semua Wilayah</option>
+          </select>
+        </div>
+
+        <button class="btn btn--outline btn--sm btn--full" id="resetFilter" aria-label="Reset semua filter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset Filter
+        </button>
+      </section>
+
+      <!-- Destination List -->
+      <section class="sidebar__section sidebar__section--list" aria-labelledby="list-heading">
+        <div class="list-header">
+          <h2 class="sidebar__heading" id="list-heading">Daftar Destinasi</h2>
+          <span class="list-count" id="listCount" aria-live="polite">0 destinasi</span>
+        </div>
+        <div class="destination-list" id="destinationList" role="list" aria-label="Daftar destinasi wisata">
+          <!-- Cards rendered by JS -->
+          <div class="list-loading" id="listLoading" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Memuat data destinasi...</p>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ===== MAP PANEL ===== -->
+    <div class="map-panel">
+      <div id="map" role="application" aria-label="Peta interaktif destinasi wisata Yogyakarta"></div>
+
+      <!-- Map Legend -->
+      <div class="map-legend" role="complementary" aria-label="Legenda peta">
+        <p class="map-legend__title">Legenda</p>
+        <div class="map-legend__item">
+          <span class="map-legend__dot map-legend__dot--wisata" aria-hidden="true"></span>
+          <span>Wisata Alternatif</span>
+        </div>
+        <div class="map-legend__item">
+          <span class="map-legend__dot map-legend__dot--kerajinan" aria-hidden="true"></span>
+          <span>Sentra Kerajinan Edukatif</span>
+        </div>
+      </div>
+
+      <!-- Map Attribution overlay handled by Leaflet -->
+    </div>
+
+  </main>
+
+  <!-- ===== DETAIL MODAL ===== -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalName" hidden>
+    <div class="modal" role="document">
+      <button class="modal__close" id="modalClose" aria-label="Tutup detail destinasi">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+
+      <div class="modal__header">
+        <div class="modal__badges" id="modalBadges"></div>
+        <h2 class="modal__name" id="modalName"></h2>
+        <p class="modal__region" id="modalRegion"></p>
+      </div>
+
+      <div class="modal__body">
+        <div class="modal__section">
+          <h3 class="modal__section-title">Alamat & Koordinat</h3>
+          <p class="modal__address" id="modalAddress"></p>
+          <p class="modal__coords" id="modalCoords"></p>
+        </div>
+
+        <div class="modal__section">
+          <h3 class="modal__section-title">Deskripsi</h3>
+          <p class="modal__description" id="modalDescription"></p>
+        </div>
+
+        <div class="modal__section" id="modalCraftsSection">
+          <h3 class="modal__section-title">Jenis Kerajinan</h3>
+          <ul class="modal__tags" id="modalCrafts"></ul>
+        </div>
+
+        <div class="modal__section" id="modalActivitiesSection">
+          <h3 class="modal__section-title">Aktivitas Edukatif</h3>
+          <ul class="modal__tags" id="modalActivities"></ul>
+        </div>
+
+        <div class="modal__section" id="modalFacilitiesSection">
+          <h3 class="modal__section-title">Fasilitas</h3>
+          <ul class="modal__tags" id="modalFacilities"></ul>
+        </div>
+
+        <div class="modal__info-row" id="modalHoursRow">
+          <div class="modal__info-item">
+            <span class="modal__info-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </span>
+            <div>
+              <p class="modal__info-label">Jam Operasional</p>
+              <p class="modal__info-value" id="modalHours"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__info-row" id="modalContactRow">
+          <div class="modal__info-item">
+            <span class="modal__info-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 12 19.79 19.79 0 0 1 1.94 3.35 2 2 0 0 1 3.9 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </span>
+            <div>
+              <p class="modal__info-label">Kontak</p>
+              <p class="modal__info-value" id="modalContact"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__source">
+          <span class="modal__source-label">Sumber:</span>
+          <span class="modal__source-value" id="modalSource"></span>
+          <span class="modal__verification" id="modalVerification"></span>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button class="btn btn--primary btn--full" id="modalDirections">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Buka di Google Maps
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet.js JS (jsDelivr) -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+
+  <!-- App JS — defer agar eksekusi terjadi setelah semua script di atas selesai -->
+  <script src="script.js" defer></script>
+
+</body>
+</html>
